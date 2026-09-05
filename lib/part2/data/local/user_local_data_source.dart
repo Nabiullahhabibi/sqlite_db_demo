@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../core/database/database_constants.dart';
 import '../../core/database/database_helper.dart';
+import '../models/post_model.dart';
 import '../models/user_model.dart';
 
 class UserLocalDataSource {
@@ -66,5 +67,42 @@ class UserLocalDataSource {
       where: '${DatabaseConstants.columnId} = ?',
       whereArgs: [id],
     );
+  }
+
+  // ------------------------------------------------------------
+  // TRANSACTION
+  // ------------------------------------------------------------
+
+  Future<void> createUserWithFirstPost({
+    required UserModel user,
+    required PostModel post,
+  }) async {
+    final db = await databaseHelper.database;
+
+    await db.transaction((txn) async {
+      // 1. Insert user
+      final userId = await txn.insert(
+        DatabaseConstants.usersTable,
+        user.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+
+      // 2. Create post using generated user ID
+      final postWithUserId = PostModel(
+        userId: userId,
+        title: post.title,
+        body: post.body,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        syncStatus: post.syncStatus,
+      );
+
+      // 3. Insert post
+      await txn.insert(
+        DatabaseConstants.postsTable,
+        postWithUserId.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+    });
   }
 }

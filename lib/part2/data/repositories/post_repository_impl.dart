@@ -1,3 +1,5 @@
+import 'package:sqlite_db_demo/part2/domain/entities/post_with_user.dart';
+
 import '../../domain/entities/post.dart';
 import '../../domain/repositories/post_repository.dart';
 import '../local/post_local_data_source.dart';
@@ -70,4 +72,15 @@ class PostRepositoryImpl implements PostRepository {
   Future<int> deletePost(int id) {
     return localDataSource.deletePost(id);
   }
+
+  @override
+Future<List<PostWithUser>> getPostsWithUsersPaginated({
+  required int page,
+  required int pageSize,
+}) async {
+  return localDataSource.getPostsWithUsersPaginated(
+    page: page,
+    pageSize: pageSize,
+  );
+}
 }

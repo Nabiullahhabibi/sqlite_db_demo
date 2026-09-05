@@ -1,4 +1,5 @@
 import '../entities/user.dart';
+import '../entities/post.dart';
 
 abstract class UserRepository {
   Future<int> insertUser(User user);
@@ -10,4 +11,9 @@ abstract class UserRepository {
   Future<int> updateUser(User user);
 
   Future<int> deleteUser(int id);
+
+  Future<void> createUserWithFirstPost({
+    required User user,
+    required Post post,
+  });
 }

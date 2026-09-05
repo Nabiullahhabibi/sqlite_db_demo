@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sqlite_db_demo/part2/domain/entities/post.dart';
 
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/post_repository.dart';
@@ -217,6 +218,103 @@ class _UsersPageState extends State<UsersPage> {
     );
   }
 
+Future<void> _createUserWithFirstPost() async {
+  final result = await showDialog<UserWithFirstPostFormResult>(
+    context: context,
+    builder: (_) {
+      return const _CreateUserWithPostDialog();
+    },
+  );
+
+  if (result == null) {
+    return;
+  }
+
+  try {
+    final now = DateTime.now();
+
+    final user = User(
+      name: result.userName,
+      email: result.email,
+      age: result.age,
+      createdAt: now,
+      updatedAt: now,
+      syncStatus: 'pending',
+    );
+
+    final post = Post(
+      userId: 0,
+      title: result.postTitle,
+      body: result.postBody,
+      createdAt: now,
+      updatedAt: now,
+      syncStatus: 'pending',
+    );
+
+    await widget.repository.createUserWithFirstPost(
+      user: user,
+      post: post,
+    );
+
+    await _loadUsers();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'User and first post created successfully',
+        ),
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Transaction failed: $e',
+        ),
+      ),
+    );
+  }
+}
+
+  void _showCreateOptions() {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person_add),
+              title: const Text('Create User'),
+              subtitle: const Text('Create only a user'),
+              onTap: () {
+                Navigator.pop(context);
+                _createUser();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.post_add),
+              title: const Text('Create User + First Post'),
+              subtitle: const Text(
+                'Create both using one database transaction',
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _createUserWithFirstPost();
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
   // =========================
   // UI
   // =========================
@@ -228,12 +326,16 @@ class _UsersPageState extends State<UsersPage> {
         title: const Text('Users'),
       ),
 
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _createUser,
-        icon: const Icon(Icons.person_add),
-        label: const Text('Create User'),
-      ),
-
+      // floatingActionButton: FloatingActionButton.extended(
+      //   onPressed: _createUser,
+      //   icon: const Icon(Icons.person_add),
+      //   label: const Text('Create User'),
+      // ),
+floatingActionButton: FloatingActionButton.extended(
+  onPressed: _showCreateOptions,
+  icon: const Icon(Icons.add),
+  label: const Text('Create'),
+),
       body: _isLoading
           ? const Center(
         child: CircularProgressIndicator(),
@@ -471,6 +573,203 @@ class _UserFormDialogState
           child: const Text('Cancel'),
         ),
 
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('Create'),
+        ),
+      ],
+    );
+  }
+}
+
+class UserWithFirstPostFormResult {
+  final String userName;
+  final String email;
+  final int age;
+
+  final String postTitle;
+  final String postBody;
+
+  const UserWithFirstPostFormResult({
+    required this.userName,
+    required this.email,
+    required this.age,
+    required this.postTitle,
+    required this.postBody,
+  });
+}
+
+
+class _CreateUserWithPostDialog extends StatefulWidget {
+  const _CreateUserWithPostDialog();
+
+  @override
+  State<_CreateUserWithPostDialog> createState() =>
+      _CreateUserWithPostDialogState();
+}
+
+class _CreateUserWithPostDialogState
+    extends State<_CreateUserWithPostDialog> {
+  final _formKey = GlobalKey<FormState>();
+
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _ageController = TextEditingController();
+
+  final _titleController = TextEditingController();
+  final _bodyController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _ageController.dispose();
+
+    _titleController.dispose();
+    _bodyController.dispose();
+
+    super.dispose();
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    Navigator.pop(
+      context,
+      UserWithFirstPostFormResult(
+        userName: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        age: int.parse(_ageController.text.trim()),
+        postTitle: _titleController.text.trim(),
+        postBody: _bodyController.text.trim(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Create User + First Post'),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'User name',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Enter user name';
+                  }
+
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Enter email';
+                  }
+
+                  if (!value.contains('@')) {
+                    return 'Enter a valid email';
+                  }
+
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _ageController,
+                decoration: const InputDecoration(
+                  labelText: 'Age',
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Enter age';
+                  }
+
+                  final age = int.tryParse(value);
+
+                  if (age == null || age <= 0) {
+                    return 'Enter a valid age';
+                  }
+
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'First Post',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Post title',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Enter post title';
+                  }
+
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _bodyController,
+                decoration: const InputDecoration(
+                  labelText: 'Post body',
+                ),
+                maxLines: 4,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Enter post body';
+                  }
+
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
           onPressed: _submit,
           child: const Text('Create'),

@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:sqlite_db_demo/part2/data/models/post_with_user_model.dart';
 
 import '../../core/database/database_constants.dart';
 import '../../core/database/database_helper.dart';
@@ -192,6 +193,58 @@ class PostLocalDataSource {
 
     return result.map(PostModel.fromMap).toList();
   }
+
+  Future<List<PostWithUserModel>> getPostsWithUsersPaginated({
+  required int page,
+  required int pageSize,
+}) async {
+  final db = await databaseHelper.database;
+
+  final offset = (page - 1) * pageSize;
+
+  final result = await db.rawQuery(
+    '''
+    SELECT
+
+      -- User
+      users.id AS user_id,
+      users.name AS user_name,
+      users.email AS user_email,
+      users.age AS user_age,
+      users.created_at AS user_created_at,
+      users.updated_at AS user_updated_at,
+      users.sync_status AS user_sync_status,
+
+      -- Post
+      posts.id AS post_id,
+      posts.user_id AS post_user_id,
+      posts.title AS post_title,
+      posts.body AS post_body,
+      posts.created_at AS post_created_at,
+      posts.updated_at AS post_updated_at,
+      posts.sync_status AS post_sync_status
+
+    FROM users
+
+    INNER JOIN posts
+      ON users.id = posts.user_id
+
+    ORDER BY posts.created_at DESC
+
+    LIMIT ?
+    OFFSET ?
+    ''',
+    [
+      pageSize,
+      offset,
+    ],
+  );
+
+  return result
+      .map(PostWithUserModel.fromMap)
+      .toList();
+}
+
 }
 /*
 INNER JOIN
