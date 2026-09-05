@@ -1,4 +1,5 @@
 import '../entities/post.dart';
+import '../entities/post_with_user.dart';
 
 abstract class PostRepository {
   Future<int> insertPost(Post post);
@@ -6,6 +7,11 @@ abstract class PostRepository {
   Future<List<Post>> getPostsByUser(int userId);
 
   Future<List<Post>> getPostsPaginated({
+    required int page,
+    required int pageSize,
+  });
+
+  Future<List<PostWithUser>> getPostsWithUsersPaginated({
     required int page,
     required int pageSize,
   });

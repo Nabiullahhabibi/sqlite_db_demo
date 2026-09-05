@@ -1,4 +1,3 @@
-
 /*
 for part one
  */
@@ -55,10 +54,11 @@ for part one
 //   }
 // }
 
-
 ///////////////////////////////////////////////////
 
 import 'package:flutter/material.dart';
+import 'package:sqlite_db_demo/part2/presentation/pages/migration_test_page.dart';
+import 'package:sqlite_db_demo/part2/presentation/pages/transaction_test_page.dart';
 
 import 'part2/core/database/database_helper.dart';
 import 'part2/data/local/post_local_data_source.dart';
@@ -75,32 +75,19 @@ Future<void> main() async {
 
   await databaseHelper.database;
 
-  final userLocalDataSource =
-  UserLocalDataSource(
-    databaseHelper,
-  );
+  final userLocalDataSource = UserLocalDataSource(databaseHelper);
 
-  final postLocalDataSource =
-  PostLocalDataSource(
-    databaseHelper,
-  );
+  final postLocalDataSource = PostLocalDataSource(databaseHelper);
 
-  final userRepository =
-  UserRepositoryImpl(
+  final userRepository = UserRepositoryImpl(
     localDataSource: userLocalDataSource,
   );
 
-  final postRepository =
-  PostRepositoryImpl(
+  final postRepository = PostRepositoryImpl(
     localDataSource: postLocalDataSource,
   );
 
-  runApp(
-    MyApp(
-      userRepository: userRepository,
-      postRepository: postRepository,
-    ),
-  );
+  runApp(MyApp(userRepository: userRepository, postRepository: postRepository));
 }
 
 class MyApp extends StatelessWidget {
@@ -119,9 +106,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'SQLite Part 2',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
       home: HomePage(
@@ -143,8 +128,7 @@ class HomePage extends StatefulWidget {
   });
 
   @override
-  State<HomePage> createState() =>
-      _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
@@ -157,15 +141,16 @@ class _HomePageState extends State<HomePage> {
         repository: widget.userRepository,
         postRepository: widget.postRepository,
       ),
-      PostsPage(
-        repository: widget.postRepository,
-      ),
+
+      PostsPage(repository: widget.postRepository),
+       const TransactionTestPage(),
+
+      const MigrationTestPage(),
     ];
 
     return Scaffold(
       body: pages[_currentIndex],
-      bottomNavigationBar:
-      NavigationBar(
+      bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
           setState(() {
@@ -173,14 +158,8 @@ class _HomePageState extends State<HomePage> {
           });
         },
         destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.people),
-            label: 'Users',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.article),
-            label: 'Posts',
-          ),
+          NavigationDestination(icon: Icon(Icons.people), label: 'Users'),
+          NavigationDestination(icon: Icon(Icons.article), label: 'Posts'),
         ],
       ),
     );
